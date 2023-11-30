@@ -55,6 +55,7 @@ function FormDeProdutos(props) {
   const [combinacoes, setCombinacoes] = useState([]);
   const [combinacoesEstoque, setCombinacoeEstoques] = useState([]);
   const [combinacoesPrecos, setCombinacoePrecos] = useState([]);
+  const [combinacoes_sku_ean, setCombinacoes_sku_ean] = useState([]);
 
   const coringa = () => {
     let combinacoesTotais = [];
@@ -83,6 +84,8 @@ function FormDeProdutos(props) {
           preco_promo_atacado: '',
           dataInicioPromocao: '',
           dataFimPromocao: '',
+          ean: '',
+          sku: '',
         });
       }
     }
@@ -227,6 +230,41 @@ function FormDeProdutos(props) {
     });
 
     setCombinacoePrecos(arrTemporaria);
+
+    arrTemporaria = [];
+
+    obj['produtosFilhos'].forEach((produto, index) => {
+      arrTemporaria.push(
+        {
+          tamanho: 12,
+          texto: produto.nomeDoProdutoFilho,
+          qualComponente: 'titulo',
+        },
+
+        {
+          tamanho: 6,
+          label: 'SKU',
+          qualComponente: 'text',
+          type: 'text',
+          disabled: true,
+          value: obj['produtosFilhos'][index]['sku'],
+        },
+        {
+          tamanho: 6,
+          label: 'EAN',
+          qualComponente: 'text',
+          type: 'text',
+          value: obj['produtosFilhos'][index]['ean'],
+          handleChangeProp: (e) => handleChangeProdutoFilho(e, index, 'ean'),
+        },
+        {
+          tamanho: 12,
+          qualComponente: 'divider',
+        }
+      );
+    });
+
+    setCombinacoes_sku_ean(arrTemporaria);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [obj['produtosFilhos']]);
@@ -889,6 +927,7 @@ function FormDeProdutos(props) {
           <Tab label='Produtos Filhos' />
           <Tab label='Estoque' />
           <Tab label='Preços' />
+          <Tab label='SKU e EAN' />
         </Tabs>
         <Divider />
         <TabPanel value={value} index={0}>
@@ -1081,6 +1120,13 @@ function FormDeProdutos(props) {
         <TabPanel value={value} index={4}>
           <Grid container spacing={2} sx={{ p: 1 }}>
             {combinacoesPrecos.map((item, index) => (
+              <GeradorDeInputs item={item} key={index} index={index} />
+            ))}
+          </Grid>
+        </TabPanel>
+        <TabPanel value={value} index={5}>
+          <Grid container spacing={2} sx={{ p: 1 }}>
+            {combinacoes_sku_ean.map((item, index) => (
               <GeradorDeInputs item={item} key={index} index={index} />
             ))}
           </Grid>

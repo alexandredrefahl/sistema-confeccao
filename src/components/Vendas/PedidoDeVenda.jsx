@@ -108,7 +108,7 @@ function PedidoDeVenda() {
 		setValue(newValue);
 	};
 
-	// Seleção em Cascata... PRODUTO > GRADE > TAMANHO > COR
+	// Seleção em Cascata... PRODUTO > TAMANHO > COR
 	// Quando Seleciona um vai restringindo os demais
 	const handleProdutoSelect = (event) => {
 		console.log(event.target.value);
@@ -117,29 +117,9 @@ function PedidoDeVenda() {
 			['idProduto']: event.target.value,
 		}));
 		// Selecionado o Produto verifica quais as cores disponíveis
-		itemListDoBackEnd('grades_do_produto', { id: event.target.value }, [
-			setGradesProduto,
-			setGradesProdutoID,
+		itemListDoBackEnd('tamanhos_do_produto', { id: rascunho['idProduto'] }, [
+			setTamanhosProduto,
 		]);
-	};
-
-	// Seleciona apenas as grades disponíveis para aquele produto
-	const handleGradeSelect = (event) => {
-		console.log('Grade Selecionada: ' + event.target.value);
-		setRascunho((prevObj) => ({
-			...prevObj,
-			['idGrade']: event.target.value,
-		}));
-		setRascunho((prevObj) => ({
-			...prevObj,
-			['grade']: event.target.value,
-		}));
-		// Quando selecionar a Grade, Filtra apenas os tamanhos daquela grade
-		itemListDoBackEnd(
-			'tamanhos_do_produto',
-			{ id: rascunho['idProduto'], grade: rascunho['idGrade'] },
-			[setTamanhosProduto]
-		);
 	};
 
 	// Seleciona apenas os tamanhos disponíveis para aquele produto
@@ -154,8 +134,8 @@ function PedidoDeVenda() {
 			'cores_da_grade',
 			{
 				id: rascunho['idProduto'],
-				grade: rascunho['idGrade'],
-				tamanho: rascunho['tamanho'],
+				//tamanho: rascunho['tamanho'],
+				tamanho: event.target.value,
 			},
 			[setCoresProduto, setCoresProdutoID]
 		);
@@ -164,14 +144,17 @@ function PedidoDeVenda() {
 	// Seleciona apenas as cores disponíveis para aquele produto
 	const handleCorSelect = (event) => {
 		console.log('Cor Selecionada: ' + event.target.value);
+
+		setRascunho((prevObj) => ({
+			...prevObj,
+			['cor']: coresProduto[coresProdutoID.indexOf(event.target.value)],
+		}));
+
 		setRascunho((prevObj) => ({
 			...prevObj,
 			['idCor']: event.target.value,
 		}));
-		setRascunho((prevObj) => ({
-			...prevObj,
-			['cor']: event.target.value,
-		}));
+		// Carregar os dados do produto
 	};
 
 	// Carregar os dados para preencher a sessão de cliente ao selecionar o cliente no Dialog
@@ -1025,16 +1008,6 @@ function PedidoDeVenda() {
 		{
 			tamanho: 12,
 			qualComponente: 'divider',
-		},
-		{
-			tamanho: 3,
-			label: 'Grade de Tamanhos',
-			name: 'grade',
-			qualComponente: 'select',
-			itemList: gradesProduto,
-			itemData: gradesProdutoID,
-			value: rascunho['idGrade'],
-			handleChangeProp: (e) => handleGradeSelect(e, setRascunho),
 		},
 		{
 			tamanho: 3,
