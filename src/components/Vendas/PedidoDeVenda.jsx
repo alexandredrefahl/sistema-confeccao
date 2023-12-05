@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect, useRef } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import Grid from '@mui/material/Grid';
 import Button from '@mui/material/Button';
 import {
@@ -37,14 +37,16 @@ import AlertDialog from '../multiuso/AlertDialog';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import DataTableMuiClientes from '../multiuso/DataTableMuiClientes';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 function PedidoDeVenda() {
 	//Definição de Constantes
 	const [AvisoEstoque, setAvisoEstoque] = useState(false);
 	const [alerta, setAlerta] = useState(false);
 	const [open_formProduto, setOpen_formProduto] = useState(false);
+
 	const [pedidoDeVenda, setPedidoDeVenda] = useContext(Context);
-	const [stateItenDoPedido, setStateItenDoPedido] = useState([]);
+	const [stateItemDoPedido, setStateItemDoPedido] = useState([]);
 	const [optNaturezaOp, setOptNaturezaOp] = useState([]);
 	const [optVendedor, setOptVendedor] = useState([]);
 	const [optProduto, setOptProduto] = useState([]);
@@ -52,18 +54,19 @@ function PedidoDeVenda() {
 	const [optTransportadoras, setOptTransportadoras] = useState([]);
 	const [value, setValue] = useState(0);
 	const [cidadeDesteEstado, setCidadeDesteEstado] = useState([]);
-	const [produtos_filho, setProdutos_Filho] = useState([]);
-	const [produtos_filho_id, setProdutos_Filho_id] = useState([]);
+	// const [produtos_filho, setProdutos_Filho] = useState([]);
+	// const [produtos_filho_id, setProdutos_Filho_id] = useState([]);
 	const [coresProduto, setCoresProduto] = useState([]);
 	const [coresProdutoID, setCoresProdutoID] = useState([]);
-	const [gradesProduto, setGradesProduto] = useState([]);
-	const [gradesProdutoID, setGradesProdutoID] = useState([]);
+	// const [gradesProduto, setGradesProduto] = useState([]);
+	// const [gradesProdutoID, setGradesProdutoID] = useState([]);
 	const [tamanhosProduto, setTamanhosProduto] = useState([]);
 	//const [retornoDoBackEnd, setRetornoDoBackEnd] = useState(false);
 	const [produtoId, setProdutoId] = useState('');
 	const [open, setOpen] = useState(false);
 	const [oQueMostrar, setOqueMostrar] = useState('tabela');
 	const qualTabelaUsar = 'clientes';
+	const [motorDeSelecao, setMotorDeSelecao] = useState('');
 
 	const [rascunho, setRascunho] = useState({
 		codDeBarra: '',
@@ -79,7 +82,7 @@ function PedidoDeVenda() {
 		estoque: '',
 		valorTotal: '0.00',
 		cor: '',
-		idCor: '',
+		corId: '',
 		grade: '',
 		idGrade: '',
 		tamanho: '',
@@ -108,19 +111,30 @@ function PedidoDeVenda() {
 		setValue(newValue);
 	};
 
-	// Seleção em Cascata... PRODUTO > TAMANHO > COR
+	// Seleção em Cascata... PRODUTO > GRADE > TAMANHO > COR
 	// Quando Seleciona um vai restringindo os demais
 	const handleProdutoSelect = (event) => {
-		console.log(event.target.value);
+		const esteValor = event.target.value;
 		setRascunho((prevObj) => ({
 			...prevObj,
-			['idProduto']: event.target.value,
+			['idProduto']: esteValor,
 		}));
+
+		setRascunho((prevObj) => ({
+			...prevObj,
+			['descricaoDoPai']: optProduto[produtoId.indexOf(esteValor)],
+		}));
+
 		// Selecionado o Produto verifica quais as cores disponíveis
 		itemListDoBackEnd('tamanhos_do_produto', { id: rascunho['idProduto'] }, [
 			setTamanhosProduto,
 		]);
+		setMotorDeSelecao('selecao');
 	};
+
+	//   const enhanced_setRascunho = () => {
+
+	//   };
 
 	// Seleciona apenas os tamanhos disponíveis para aquele produto
 	const handleTamanhoSelect = (event) => {
@@ -143,18 +157,23 @@ function PedidoDeVenda() {
 
 	// Seleciona apenas as cores disponíveis para aquele produto
 	const handleCorSelect = (event) => {
-		console.log('Cor Selecionada: ' + event.target.value);
-
+		let esteValor = event.target.value;
+		console.log('Cor Selecionada: ' + esteValor);
 		setRascunho((prevObj) => ({
 			...prevObj,
-			['cor']: coresProduto[coresProdutoID.indexOf(event.target.value)],
+			['cor']: coresProduto[coresProdutoID.indexOf(esteValor)],
 		}));
 
 		setRascunho((prevObj) => ({
 			...prevObj,
-			['idCor']: event.target.value,
+			['corId']: esteValor,
 		}));
-		// Carregar os dados do produto
+		// carregar produto
+		consulta_preco('selecao', [
+			rascunho['idProduto'],
+			rascunho['tamanho'],
+			esteValor,
+		]);
 	};
 
 	// Carregar os dados para preencher a sessão de cliente ao selecionar o cliente no Dialog
@@ -245,16 +264,16 @@ function PedidoDeVenda() {
 		})
 			.then((res) => res.json())
 			.then(
-				(result) => {
-					if (result[0] === undefined) {
+				(resul) => {
+					const result = resul[0];
+					if (result === undefined) {
 						return;
 					}
-					console.log(result);
 					// Verifica se está no período promocional ou não
 					let periodoPromocao = isDateBetween(
 						pedidoDeVenda['Data'],
-						result[0].data_ini_promo,
-						result[0].data_fim_promo
+						result.data_ini_promo,
+						result.data_fim_promo
 					);
 					console.log(periodoPromocao);
 					// Verifica qual tabela está marcada no pedido (Varejo ou Atacado)
@@ -272,7 +291,7 @@ function PedidoDeVenda() {
 							// Se não, preço normal
 							setRascunho((prevObj) => ({
 								...prevObj,
-								['precoUnit']: result[0].preco_varejo,
+								['precoUnit']: result.preco_varejo,
 								['tipoDePreco']: 'Varejo',
 							}));
 						}
@@ -282,7 +301,7 @@ function PedidoDeVenda() {
 							// Se estiver no período promocional
 							setRascunho((prevObj) => ({
 								...prevObj,
-								['precoUnit']: result[0].preco_promo_atacado,
+								['precoUnit']: result.preco_promo_atacado,
 								['tipoDePreco']: 'Atacado Promocional',
 							}));
 						} else {
@@ -290,18 +309,24 @@ function PedidoDeVenda() {
 							setRascunho((prevObj) => ({
 								// 1- Tabela do Atacado
 								...prevObj,
-								['precoUnit']: result[0].preco_atacado,
+								['precoUnit']: result.preco_atacado,
 								['tipoDePreco']: 'Atacado',
 							}));
 						}
 					}
+
+					const idProdutoStr = result.produtos_id.toString();
+					const corIdStr = result.corId.toString();
+
 					// Obtém as demais informações
 					setRascunho((prevObj) => ({
 						...prevObj,
-						['estoque']: result[0].estoque,
-						['SKU']: result[0].sku,
-						['ref']: result[0].referencia,
-						['idProduto']: result[0].produtos_id,
+						['estoque']: result.estoque,
+						['SKU']: result.sku,
+						['ref']: result.referencia,
+						['idProduto']: idProdutoStr,
+						['tamanho']: result.tamanho,
+						['corId']: corIdStr,
 					}));
 				},
 				(error) => {
@@ -311,31 +336,36 @@ function PedidoDeVenda() {
 	};
 
 	const adicionaItem = () => {
+		// Cria um array vazio
 		let itensDoPedio_arr = [];
-
-		itensDoPedio_arr = itensDoPedio_arr.concat(stateItenDoPedido);
-
-		// Monta aqui o obj rascunho pois ficou mais prático assim
-		console.log('Item ID:' + rascunho['idDoProdutoFilho']);
-		console.log('Qtde   :' + rascunho['qtd']);
-		console.log('Descri :' + rascunho['descricaoDoItem']);
-		console.log('Preço  :' + rascunho['precoUnit']);
-
-		itensDoPedio_arr.push(rascunho);
-		setQtde();
-		setPreco();
-		setRascunho({
-			qtd: 0,
-			idDoProdutoFilho: '',
-			idProduto: '',
-			precoUnit: '0.00',
-			valorTotal: '0.00',
-			descricaoDoItem: 'Blusa de Coton Amarelo-Adulto-PP',
-		});
-		setStateItenDoPedido(itensDoPedio_arr);
-
-		// Coloca no obj p request
-		// setObj(obj[''])
+		// Pega os ítens já estão no array temporário
+		itensDoPedio_arr = itensDoPedio_arr.concat(stateItemDoPedido);
+		// Prepara o rascunho de inclusão
+		const paraInserirNaTabela = {
+			OP: 'PE',
+			SKU: rascunho['SKU'],
+			ref: rascunho['ref'],
+			descricaoDoPai: rascunho['descricaoDoPai'],
+			cor: rascunho['cor'],
+			tamanho: rascunho['tamanho'],
+			qtd: rascunho['qtd'],
+			precoUnit: rascunho['precoUnit'],
+			desconto: rascunho['desconto'],
+			get precoCDesc() {
+				return (
+					(1 - parseInt(rascunho['desconto']) / 100) *
+					parseFloat(rascunho['precoUnit'])
+				);
+			},
+			valorTotal: rascunho['valorTotal'],
+			idDoProdutoFilho: rascunho['idDoProdutoFilho'],
+			idProduto: rascunho['idProduto'],
+			corId: rascunho['corId'],
+		};
+		// Adiciona o item recém criado
+		itensDoPedio_arr.push(paraInserirNaTabela);
+		// Recoloca ele no objeto
+		setStateItemDoPedido(itensDoPedio_arr);
 	};
 
 	const carrega_dados_clientes = () => {
@@ -382,6 +412,9 @@ function PedidoDeVenda() {
 						...prevObj,
 						['Estado']: result.dados[0]['estado'],
 					}));
+					// Carregar as cidades deste estado, antes de atribuir a cidade que vem do cadastro
+					// Para que apareça o nome da cidade
+
 					setPedidoDeVenda((prevObj) => ({
 						...prevObj,
 						['Cidade']: result.dados[0]['cidade'],
@@ -857,13 +890,13 @@ function PedidoDeVenda() {
 			name: 'valFrete',
 			qualComponente: 'text',
 			type: 'number',
-			value: pedidoDeVenda['ValFrete'],
+			value: pedidoDeVenda['valFrete'],
 			handleChangeProp: (e) => handleChange(e, setPedidoDeVenda),
 		},
 		{
 			tamanho: 2,
 			label: 'Valor da Entrega',
-			name: 'id',
+			name: 'valEntrega',
 			qualComponente: 'text',
 			type: 'number',
 			value: pedidoDeVenda['valEntrega'],
@@ -872,10 +905,10 @@ function PedidoDeVenda() {
 		{
 			tamanho: 2,
 			label: 'Valor do Seguro',
-			name: 'valSeg',
+			name: 'valSeguro',
 			qualComponente: 'text',
 			type: 'number',
-			value: pedidoDeVenda['ValSeguro'],
+			value: pedidoDeVenda['valSeguro'],
 			handleChangeProp: (e) => handleChange(e, setPedidoDeVenda),
 		},
 	];
@@ -944,12 +977,14 @@ function PedidoDeVenda() {
 		if (name == 'codDeBarra') {
 			if (value.length == 10) {
 				consulta_preco('codDeBarra', value);
+				setMotorDeSelecao('codDeBarra');
 			}
 		}
 		//Se ele estiver digitando no Sku
 		if (name == 'SKU') {
 			if (value.length == 12) {
 				consulta_preco('sku', value);
+				setMotorDeSelecao('sku');
 			}
 		}
 		//Se ele estiver digitando na Referencia
@@ -957,6 +992,7 @@ function PedidoDeVenda() {
 			//limpa_outros(['codDeBarra', 'SKU', 'idProduto']);
 			if (value.length == 12) {
 				consulta_preco('ref', value);
+				setMotorDeSelecao('ref');
 			}
 		}
 		setObject((prevObj) => ({
@@ -1009,24 +1045,30 @@ function PedidoDeVenda() {
 			tamanho: 12,
 			qualComponente: 'divider',
 		},
+		// item.handleBlur != 'undefined' ? item.handleBlur : null
 		{
 			tamanho: 3,
 			label: 'Tamanho',
 			name: 'tamanho',
-			qualComponente: 'select',
+			qualComponente: motorDeSelecao == 'selecao' ? 'select' : 'text',
+			type: motorDeSelecao == 'selecao' ? '' : 'text',
 			itemList: tamanhosProduto,
 			itemData: tamanhosProduto,
+			disabled: motorDeSelecao == 'selecao' ? false : true,
 			value: rascunho['tamanho'],
 			handleChangeProp: (e) => handleTamanhoSelect(e, setRascunho),
 		},
 		{
 			tamanho: 3,
 			label: 'Cor',
-			name: 'idCor',
-			qualComponente: 'select',
+			name: 'corId',
+			qualComponente: motorDeSelecao == 'selecao' ? 'select' : 'text',
+			type: motorDeSelecao == 'selecao' ? '' : 'text',
 			itemList: coresProduto,
 			itemData: coresProdutoID,
-			value: rascunho['idCor'],
+			disabled: motorDeSelecao == 'selecao' ? false : true,
+			value:
+				motorDeSelecao == 'selecao' ? rascunho['corId'] : rascunho['cor'],
 			handleChangeProp: (e) => handleCorSelect(e, setRascunho),
 		},
 		{
@@ -1177,7 +1219,7 @@ function PedidoDeVenda() {
 								variant='contained'
 								onClick={() => abreFormProduto()}
 							>
-								Adicionar
+								Incluir
 							</Button>
 						</Grid>
 						<Dialog
@@ -1221,7 +1263,12 @@ function PedidoDeVenda() {
 										container
 										justifyContent='flex-end'
 									>
-										<Button variant='contained'>Adicionar</Button>
+										<Button
+											variant='contained'
+											onClick={adicionaItem}
+										>
+											Adicionar
+										</Button>
 									</Grid>
 								</Grid>
 							</DialogContent>
@@ -1231,28 +1278,47 @@ function PedidoDeVenda() {
 						</Grid>
 						<Grid item xs={12}>
 							<TableContainer component={Paper}>
-								{stateItenDoPedido.length == 0 ? (
+								{stateItemDoPedido.length == 0 ? (
 									<Table
 										sx={{ minWidth: 650 }}
 										size='small'
 										aria-label='a dense table'
 									>
 										<TableHead>
+											{/* OP	SKU	Ref	Produto				Cor		Tamanho	Quant.	Preço	R$ Total	Desc %	Preço	R$ Total	Observação				Quant. Mov. */}
 											<TableRow>
 												<TableCell align='center'>
-													<b>ID</b>
+													<b>OP</b>
 												</TableCell>
 												<TableCell align='center'>
-													<b>Quantidade</b>
-												</TableCell>
-												<TableCell align='left'>
-													<b>Descrição</b>
+													<b>SKU</b>
 												</TableCell>
 												<TableCell align='center'>
-													<b>Preço Unitário</b>
+													<b>Ref</b>
 												</TableCell>
 												<TableCell align='center'>
-													<b>Preço Total</b>
+													<b>Produto</b>
+												</TableCell>
+												<TableCell align='center'>
+													<b>Cor</b>
+												</TableCell>
+												<TableCell align='center'>
+													<b>Tamanho</b>
+												</TableCell>
+												<TableCell align='center'>
+													<b>Quant.</b>
+												</TableCell>
+												<TableCell align='center'>
+													<b>Preço</b>
+												</TableCell>
+												<TableCell align='center'>
+													<b>Desc %</b>
+												</TableCell>
+												<TableCell align='center'>
+													<b>Preço C/ Desc.</b>
+												</TableCell>
+												<TableCell align='center'>
+													<b>R$ Total</b>
 												</TableCell>
 											</TableRow>
 										</TableHead>
@@ -1264,26 +1330,45 @@ function PedidoDeVenda() {
 										aria-label='a dense table'
 									>
 										<TableHead>
+											{/* OP	SKU	Ref	Produto				Cor		Tamanho	Quant.	Preço	R$ Total	Desc %	Preço	R$ Total	Observação				Quant. Mov. */}
 											<TableRow>
 												<TableCell align='center'>
-													<b>ID</b>
+													<b>OP</b>
 												</TableCell>
 												<TableCell align='center'>
-													Quantidade
+													<b>SKU</b>
 												</TableCell>
 												<TableCell align='center'>
-													Descrição
+													<b>Ref</b>
 												</TableCell>
-												<TableCell align='right'>
-													Preço Unitário
+												<TableCell align='center'>
+													<b>Produto</b>
 												</TableCell>
-												<TableCell align='right'>
-													Preço Total
+												<TableCell align='center'>
+													<b>Cor</b>
+												</TableCell>
+												<TableCell align='center'>
+													<b>Tamanho</b>
+												</TableCell>
+												<TableCell align='center'>
+													<b>Quant.</b>
+												</TableCell>
+												<TableCell align='center'>
+													<b>Preço</b>
+												</TableCell>
+												<TableCell align='center'>
+													<b>Desc %</b>
+												</TableCell>
+												<TableCell align='center'>
+													<b>Preço C/ Desc.</b>
+												</TableCell>
+												<TableCell align='center'>
+													<b>R$ Total</b>
 												</TableCell>
 											</TableRow>
 										</TableHead>
 										<TableBody>
-											{stateItenDoPedido.map((item, index) => (
+											{stateItemDoPedido.map((item, index) => (
 												<TableRow
 													key={index}
 													sx={{
@@ -1293,18 +1378,58 @@ function PedidoDeVenda() {
 													}}
 												>
 													<TableCell align='center'>
-														{item.idDoProdutoFilho}
+														<Grid
+															container
+															justify='center'
+															alignItems='center'
+														>
+															<Button
+																onClick={() => {
+																	let filteredArray = [];
+																	filteredArray =
+																		filteredArray.concat(
+																			stateItemDoPedido
+																		);
+																	filteredArray.pop(index);
+																	setStateItemDoPedido(
+																		filteredArray
+																	);
+																}}
+																sx={{ p: 0, m: 0 }}
+															>
+																<DeleteIcon />
+															</Button>
+															{item.OP}
+														</Grid>
+													</TableCell>
+													<TableCell align='center'>
+														{item.SKU}
+													</TableCell>
+													<TableCell align='center'>
+														{item.ref}
+													</TableCell>
+													<TableCell align='center'>
+														{item.descricaoDoPai}
+													</TableCell>
+													<TableCell align='center'>
+														{item.cor}
+													</TableCell>
+													<TableCell align='center'>
+														{item.tamanho}
 													</TableCell>
 													<TableCell align='center'>
 														{item.qtd}
 													</TableCell>
 													<TableCell align='center'>
-														{item.descricaoDoItem}
-													</TableCell>
-													<TableCell align='right'>
 														{item.precoUnit}
 													</TableCell>
-													<TableCell align='right'>
+													<TableCell align='center'>
+														{item.desconto}
+													</TableCell>
+													<TableCell align='center'>
+														{item.precoCDesc}
+													</TableCell>
+													<TableCell align='center'>
 														{item.valorTotal}
 													</TableCell>
 												</TableRow>

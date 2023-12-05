@@ -13,7 +13,8 @@ import MyCheckBox from './MyCheckBox';
 import MyButton from './MyButton';
 
 function GeradorDeInputs(props) {
-	//console.log(props);
+	// console.log(props.item.label);
+	// console.log(props);
 	let item = props.item;
 	let index = props.index;
 	let content;
